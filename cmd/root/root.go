@@ -17,6 +17,7 @@ package root
 import (
 	"os"
 
+	"github.com/SunSince90/kube-scraper-backend/cmd/firestore"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
@@ -55,6 +56,9 @@ scrapers can use this as the place where to get data.`,
 	// -- Mark as required
 	cmd.MarkPersistentFlagRequired("address")
 	cmd.MarkPersistentFlagRequired("port")
+
+	// -- Subcommands
+	cmd.AddCommand(firestore.NewFirestoreCommand())
 
 	return cmd
 }
