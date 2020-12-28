@@ -11,5 +11,4 @@ require (
 	google.golang.org/api v0.36.0
 	google.golang.org/grpc v1.34.0
 	google.golang.org/protobuf v1.25.0
-	gopkg.in/yaml.v2 v2.2.8
 )

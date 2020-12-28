@@ -5,4 +5,6 @@ type firestoreOptions struct {
 	debug              bool
 	serviceAccountPath string
 	projectName        string
+	address            string
+	port               int
 }

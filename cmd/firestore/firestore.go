@@ -17,12 +17,17 @@ package firestore
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/SunSince90/kube-scraper-backend/pkg/firestore"
+	"github.com/SunSince90/kube-scraper-backend/pkg/pb"
+	"github.com/SunSince90/kube-scraper-backend/pkg/server"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -45,7 +50,20 @@ func NewFirestoreCommand() *cobra.Command {
 -c chats`,
 		Short: "establish a connection with firestore",
 		Long:  `firestore connects to firestore and loads data from there`,
-		Run:   runFirestore,
+		Run: func(cmd *cobra.Command, args []string) {
+			addr, err := cmd.Parent().Flags().GetString("address")
+			if err != nil {
+				log.Fatal().Msg("could not get address flag")
+			}
+			port, err := cmd.Parent().Flags().GetInt("port")
+			if err != nil {
+				log.Fatal().Msg("could not get port flag")
+			}
+
+			opts.address = addr
+			opts.port = port
+			runFirestore(opts)
+		},
 	}
 
 	// -- Flags
@@ -61,16 +79,46 @@ func NewFirestoreCommand() *cobra.Command {
 	return cmd
 }
 
-func runFirestore(cmd *cobra.Command, args []string) {
+func runFirestore(opts *firestoreOptions) {
+	// -- Init
 	l := log.With().Str("func", "runFirestore").Logger()
+	l.Info().Msg("starting...")
 	l.Debug().Msg("debug mode requested")
 
-	stopChan := make(chan struct{})
 	ctx, canc := context.WithCancel(context.Background())
+	defer canc()
+	stopChan := make(chan struct{})
+	endpoint := fmt.Sprintf("%s:%d", opts.address, opts.port)
 
-	// TODO
-	_ = ctx
-	_ = stopChan
+	// -- Get the backend
+	fs, err := firestore.NewBackend(ctx, opts.serviceAccountPath, &firestore.Options{
+		ProjectName:     opts.projectName,
+		ChatsCollection: opts.chatsCollection,
+		UseCache:        true,
+	})
+	if err != nil {
+		l.Fatal().Err(err).Msg("error while getting firestore as backend")
+	}
+	defer fs.Close()
+
+	// -- Start the grpc server
+	serv, err := server.New(fs)
+	if err != nil {
+		l.Fatal().Err(err).Msg("error while starting the backend")
+		return
+	}
+
+	lis, err := net.Listen("tcp", endpoint)
+	if err != nil {
+		l.Fatal().Err(err).Msg("failed to listen")
+		return
+	}
+	grpcServer := grpc.NewServer()
+	pb.RegisterBackendServer(grpcServer, serv)
+	go func() {
+		grpcServer.Serve(lis)
+		close(stopChan)
+	}()
 
 	// -- Graceful shutdown
 	signalChan := make(chan os.Signal, 1)
@@ -84,8 +132,8 @@ func runFirestore(cmd *cobra.Command, args []string) {
 	<-signalChan
 	fmt.Println()
 	l.Info().Msg("exit requested")
-
-	canc()
+	grpcServer.GracefulStop()
+	<-stopChan
 
 	l.Info().Msg("goodbye!")
 }
