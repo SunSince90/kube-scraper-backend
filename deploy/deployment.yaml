@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: kube-scraper
+spec:
+  selector:
+    matchLabels:
+      run: backend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: backend
+    spec:
+      volumes:
+      - name: gcp-service-account
+        secret:
+          secretName: gcp-service-account
+      containers:
+      - name: backend
+        image: <image>
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "300m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        securityContext:
+          allowPrivilegeEscalation: false
+        ports:
+        - containerPort: 8787
+        command:
+        - /backend
+        - firestore
+        - --chats-collection
+        - $(CHATS_COLLECTION)
+        - --project-name
+        - $(FIREBASE_PROJECT_ID)
+        - --service-account-path
+        - /credentials/service-account.json
+        - --address
+        - $(POD_IP)
+        - --port
+        - "8787"
+        env:
+          - name: CHATS_COLLECTION
+            valueFrom:
+              configMapKeyRef:
+                name: chats-config
+                key: firestore.chats-collection
+          - name: FIREBASE_PROJECT_ID
+            valueFrom:
+              secretKeyRef:
+                name: firebase-project-id
+                key: project-id
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        volumeMounts:
+        - name: gcp-service-account
+          readOnly: true
+          mountPath: "/credentials"
