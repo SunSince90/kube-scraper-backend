@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"sync"
+	"time"
 
 	fs "cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
@@ -12,6 +14,12 @@ import (
 	"github.com/SunSince90/kube-scraper-backend/pkg/pb"
 	"github.com/rs/zerolog"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+const (
+	timeout = time.Duration(15) * time.Second
 )
 
 var (
@@ -74,8 +82,43 @@ func (f *fsBackend) Close() {
 
 // GetChatByID gets a chat from firestore
 func (f *fsBackend) GetChatByID(id int64) (*pb.Chat, error) {
-	// TODO: implement me
-	return nil, nil
+	// -- Init
+	if id == 0 {
+		return nil, fmt.Errorf("chat id cannot be 0")
+	}
+
+	l := log.With().Str("func", "GetChatByID").Int64("id", id).Logger()
+	if f.UseCache {
+		// TODO: implement cache
+	}
+
+	// -- Get the chat
+	docPath := path.Join(f.ChatsCollection, fmt.Sprintf("%d", id))
+	ctx, canc := context.WithTimeout(context.Background(), timeout)
+	defer canc()
+
+	doc, err := f.client.Doc(docPath).Get(ctx)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return nil, backend.ErrNotFound
+		}
+
+		return nil, err
+	}
+	l.Debug().Msg("pulled from firestore")
+
+	// -- Cast and return
+	var _chat chat
+	if err := doc.DataTo(&_chat); err != nil {
+		return nil, err
+	}
+	c := convertToProto(&_chat)
+
+	if f.UseCache {
+		// TODO: implement cache
+	}
+
+	return c, nil
 }
 
 // GetChatByUsername gets a chat from firestore by username
