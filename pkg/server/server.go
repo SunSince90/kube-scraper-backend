@@ -67,7 +67,43 @@ func (b *backendServer) GetChat(ctx context.Context, r *pb.ChatRequest) (*pb.Cha
 	}, nil
 }
 
+// GetAllChats returns a list of chats according to the request
 func (b *backendServer) GetAllChats(ctx context.Context, r *pb.ChatRequest) (*pb.ChatResponse, error) {
-	// TODO: implement me
-	return nil, nil
+	chats, err := b.backend.GetAllChats()
+	if err != nil {
+		return &pb.ChatResponse{
+			Code:    500,
+			Message: err.Error(),
+		}, fmt.Errorf("error while getting chats list")
+	}
+
+	// Has a filter?
+	if len(r.Type) == 0 {
+		return &pb.ChatResponse{
+			Code:    200,
+			Message: "ok",
+			Chats:   chats,
+		}, nil
+	}
+
+	if r.Type != "group" && r.Type != "supergroup" && r.Type != "private" || r.Type != "channel" {
+		return &pb.ChatResponse{
+			Code:    500,
+			Message: "unrecognized chat type",
+			Chats:   chats,
+		}, fmt.Errorf("unrecognized chat type (%s)", r.Type)
+	}
+
+	_chats := []*pb.Chat{}
+	for _, chat := range chats {
+		if chat.Type == r.Type {
+			_chats = append(_chats, chat)
+		}
+	}
+
+	return &pb.ChatResponse{
+		Code:    200,
+		Message: "ok",
+		Chats:   _chats,
+	}, nil
 }
