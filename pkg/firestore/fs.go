@@ -2,6 +2,7 @@ package firestore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -13,6 +14,7 @@ import (
 	"github.com/SunSince90/kube-scraper-backend/pkg/backend"
 	"github.com/SunSince90/kube-scraper-backend/pkg/pb"
 	"github.com/rs/zerolog"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -123,8 +125,39 @@ func (f *fsBackend) GetChatByID(id int64) (*pb.Chat, error) {
 
 // GetChatByUsername gets a chat from firestore by username
 func (f *fsBackend) GetChatByUsername(username string) (*pb.Chat, error) {
-	// TODO: implement me
-	return nil, nil
+	// -- Init
+	if len(username) == 0 {
+		return nil, fmt.Errorf("chat username cannot be 0")
+	}
+
+	l := log.With().Str("func", "GetChatByUsername").Str("username", username).Logger()
+	ctx, canc := context.WithTimeout(context.Background(), timeout)
+	defer canc()
+
+	// -- Get the chat
+	docIter := f.client.Collection(f.ChatsCollection).Where("username", "==", username).Limit(1).Documents(ctx)
+	doc, err := docIter.Next()
+	if err != nil {
+		if errors.Is(err, iterator.Done) {
+			return nil, backend.ErrNotFound
+		}
+
+		return nil, err
+	}
+	l.Debug().Msg("pulled from firestore")
+
+	// -- Cast and return
+	var _chat chat
+	if err := doc.DataTo(&_chat); err != nil {
+		return nil, err
+	}
+	c := convertToProto(&_chat)
+
+	if f.UseCache {
+		// TODO: implement cache
+	}
+
+	return c, nil
 }
 
 // StoreChats inserts a chat into firestore
