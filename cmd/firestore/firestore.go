@@ -68,7 +68,7 @@ func NewFirestoreCommand() *cobra.Command {
 
 	// -- Flags
 	cmd.Flags().StringVarP(&opts.serviceAccountPath, "service-account-path", "s", "", "the path to the service account")
-	cmd.Flags().StringVarP(&opts.projectName, "project-name", "n", "", "the name of the firebase project")
+	cmd.Flags().StringVarP(&opts.projectID, "project-id", "i", "", "the id of the firebase project")
 	cmd.Flags().StringVarP(&opts.chatsCollection, "chats-collection", "c", "", "the name of the collections where chats are stored")
 	cmd.Flags().BoolVar(&opts.listen, "listen", true, "whether to listening to chat updates or not")
 
@@ -94,7 +94,7 @@ func runFirestore(opts *firestoreOptions) {
 
 	// -- Get the backend
 	fs, err := firestore.NewBackend(ctx, opts.serviceAccountPath, &firestore.Options{
-		ProjectName:     opts.projectName,
+		ProjectID:       opts.projectID,
 		ChatsCollection: opts.chatsCollection,
 		UseCache:        true,
 	})

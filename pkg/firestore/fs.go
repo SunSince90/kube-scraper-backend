@@ -48,12 +48,12 @@ func NewBackend(ctx context.Context, servAcc string, opts *Options) (backend.Bac
 	if len(opts.ChatsCollection) == 0 {
 		return nil, fmt.Errorf("no chat collection set")
 	}
-	if len(opts.ProjectName) == 0 {
+	if len(opts.ProjectID) == 0 {
 		return nil, fmt.Errorf("no project name set")
 	}
 
 	// -- Load firebase
-	conf := &firebase.Config{ProjectID: opts.ProjectName}
+	conf := &firebase.Config{ProjectID: opts.ProjectID}
 	app, err := firebase.NewApp(ctx, conf, option.WithServiceAccountFile(servAcc))
 	if err != nil {
 		return nil, err

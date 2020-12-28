@@ -37,7 +37,7 @@ spec:
         - firestore
         - --chats-collection
         - $(CHATS_COLLECTION)
-        - --project-name
+        - --project-id
         - $(FIREBASE_PROJECT_ID)
         - --service-account-path
         - /credentials/service-account.json
