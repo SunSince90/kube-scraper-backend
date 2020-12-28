@@ -195,8 +195,23 @@ func (f *fsBackend) StoreChat(c *pb.Chat) error {
 
 // DeleteChat deletes a chat from firestore
 func (f *fsBackend) DeleteChat(id int64) error {
-	// TODO: implement me
-	return nil
+	// -- Init
+	if id == 0 {
+		return fmt.Errorf("chat id cannot be 0")
+	}
+
+	// -- Delete and return
+	docPath := path.Join(f.ChatsCollection, fmt.Sprintf("%d", id))
+	ctx, canc := context.WithTimeout(context.Background(), timeout)
+	defer canc()
+
+	_, err := f.client.Doc(docPath).Delete(ctx)
+
+	if f.UseCache {
+		// TODO: implement cache
+	}
+
+	return err
 }
 
 // GetAllChats gets all chat from firestore
