@@ -1,10 +1,16 @@
 package backend
 
-import "github.com/SunSince90/kube-scraper-backend/pkg/pb"
+import (
+	"context"
+
+	"github.com/SunSince90/kube-scraper-backend/pkg/pb"
+)
 
 // Backend is a backend that can be used to store and retrieve
 // chats.
 type Backend interface {
+	// ListenForChats listens for chats and updates the cache accordingly
+	ListenForChats(context.Context, chan struct{})
 	// GetChatByID retrieves a chat by the id
 	GetChatByID(int64) (*pb.Chat, error)
 	// GetChatByUsername retrieves a chat by username

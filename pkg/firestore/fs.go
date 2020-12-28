@@ -77,6 +77,48 @@ func NewBackend(ctx context.Context, servAcc string, opts *Options) (backend.Bac
 	return fs, nil
 }
 
+// ListenForChats listens for new chats and puts them on cache
+func (f *fsBackend) ListenForChats(ctx context.Context, stopChan chan struct{}) {
+	l := log.With().Str("func", "ListenForChats").Logger()
+	defer close(stopChan)
+	if !f.UseCache {
+		l.Error().Msg("cache is not enabled, no listening will be performed")
+		return
+	}
+
+	_data := f.client.Collection(f.ChatsCollection).Snapshots(ctx)
+	defer _data.Stop()
+
+	for {
+		d, err := _data.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			l.Err(err).Msg("error while listening for chats")
+			return
+		}
+
+		for _, change := range d.Changes {
+			var data chat
+			if err := change.Doc.DataTo(&data); err != nil {
+				l.Err(err).Str("id", change.Doc.Ref.ID).Msg("error while unmarshalling chat id, continuing...")
+				continue
+			}
+
+			c := convertToProto(&data)
+			if change.Kind == fs.DocumentRemoved {
+				l.Debug().Str("id", change.Doc.Ref.ID).Msg("chat must be deleted from cache")
+				f.deleteChatFromCache(data.ChatID)
+			} else {
+				l.Debug().Str("id", change.Doc.Ref.ID).Msg("chat must be added to cache")
+				f.insertChatIntoCache(c)
+			}
+		}
+	}
+}
+
 // Close the client
 func (f *fsBackend) Close() {
 	f.client.Close()
