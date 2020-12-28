@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option go_package = "github.com/SunSince90/kube-scraper-backend/pkg/pb";
+
+package pb;
+
+service ChatsBackend {
+    rpc GetChat(ChatRequest) returns (ChatResponse);
+    rpc GetChatsList(ChatRequest) returns (ChatResponse);
+}
+
+message ChatRequest {
+    int64 id = 1;
+    string username = 2;
+    string type = 3;
+}
+
+message ChatResponse {
+    int64 code = 1;
+    string message = 2;
+    repeated Chat chats = 3;
+}
+
+message Chat {
+    int64 id = 1;
+    string title = 2;
+    string type = 3;
+    string username = 4;
+    string first_name = 5;
+    string last_name = 6;
+}
+
