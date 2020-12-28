@@ -38,9 +38,33 @@ func New(b backend.Backend) (pb.BackendServer, error) {
 	return serv, nil
 }
 
+// GetChat gets chat from the backend
 func (b *backendServer) GetChat(ctx context.Context, r *pb.ChatRequest) (*pb.ChatResponse, error) {
-	// TODO: implement me
-	return nil, nil
+	var chat *pb.Chat
+	var err error
+
+	// -- Get the chat by ID
+	if r.Id != 0 {
+		chat, err = b.backend.GetChatByID(r.Id)
+	}
+
+	// -- Get the chat by username
+	if len(r.Username) > 0 {
+		chat, err = b.backend.GetChatByUsername(r.Username)
+	}
+
+	if err != nil {
+		return &pb.ChatResponse{
+			Code:    500,
+			Message: err.Error(),
+		}, fmt.Errorf("error while getting chat")
+	}
+
+	return &pb.ChatResponse{
+		Code:    200,
+		Message: "ok",
+		Chats:   []*pb.Chat{chat},
+	}, nil
 }
 
 func (b *backendServer) GetAllChats(ctx context.Context, r *pb.ChatRequest) (*pb.ChatResponse, error) {
