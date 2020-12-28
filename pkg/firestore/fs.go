@@ -162,7 +162,34 @@ func (f *fsBackend) GetChatByUsername(username string) (*pb.Chat, error) {
 
 // StoreChats inserts a chat into firestore
 func (f *fsBackend) StoreChat(c *pb.Chat) error {
-	// TODO: implement me
+	// -- Init
+	if c == nil {
+		return fmt.Errorf("chat cannot be nil")
+	}
+	l := log.With().Str("func", "StoreChat").Int64("id", c.Id).Logger()
+	addChat := chat{
+		ChatID:    c.Id,
+		Type:      c.Type,
+		Username:  c.Username,
+		FirstName: c.FirstName,
+		LastName:  c.LastName,
+	}
+
+	// -- Store the chat on firestore
+	docPath := path.Join(f.ChatsCollection, fmt.Sprintf("%d", c.Id))
+	ctx, canc := context.WithTimeout(context.Background(), timeout)
+	defer canc()
+
+	_, err := f.client.Doc(docPath).Set(ctx, addChat)
+	if err != nil {
+		return err
+	}
+
+	if f.UseCache {
+		// TODO: implement cache
+	}
+
+	l.Debug().Msg("stored on firestore")
 	return nil
 }
 
