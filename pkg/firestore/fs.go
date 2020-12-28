@@ -91,7 +91,10 @@ func (f *fsBackend) GetChatByID(id int64) (*pb.Chat, error) {
 
 	l := log.With().Str("func", "GetChatByID").Int64("id", id).Logger()
 	if f.UseCache {
-		// TODO: implement cache
+		if _chat := f.getChatFromCache(id); _chat != nil {
+			l.Debug().Msg("pulled from cache")
+			return _chat, nil
+		}
 	}
 
 	// -- Get the chat
@@ -117,7 +120,7 @@ func (f *fsBackend) GetChatByID(id int64) (*pb.Chat, error) {
 	c := convertToProto(&_chat)
 
 	if f.UseCache {
-		// TODO: implement cache
+		f.insertChatIntoCache(c)
 	}
 
 	return c, nil
@@ -154,7 +157,7 @@ func (f *fsBackend) GetChatByUsername(username string) (*pb.Chat, error) {
 	c := convertToProto(&_chat)
 
 	if f.UseCache {
-		// TODO: implement cache
+		f.insertChatIntoCache(c)
 	}
 
 	return c, nil
@@ -186,7 +189,7 @@ func (f *fsBackend) StoreChat(c *pb.Chat) error {
 	}
 
 	if f.UseCache {
-		// TODO: implement cache
+		f.insertChatIntoCache(c)
 	}
 
 	l.Debug().Msg("stored on firestore")
@@ -208,7 +211,7 @@ func (f *fsBackend) DeleteChat(id int64) error {
 	_, err := f.client.Doc(docPath).Delete(ctx)
 
 	if f.UseCache {
-		// TODO: implement cache
+		f.deleteChatFromCache(id)
 	}
 
 	return err
@@ -219,7 +222,10 @@ func (f *fsBackend) GetAllChats() ([]*pb.Chat, error) {
 	// -- Init
 	l := log.With().Str("func", "GetAllChats").Logger()
 	if f.UseCache {
-		// TODO: implement cache
+		if list := f.getAllChatsFromCache(); len(list) > 0 {
+			l.Debug().Msg("pulled from cache")
+			return list, nil
+		}
 	}
 
 	ctx, canc := context.WithTimeout(context.Background(), timeout)
@@ -249,7 +255,7 @@ func (f *fsBackend) GetAllChats() ([]*pb.Chat, error) {
 		c := convertToProto(&_chat)
 
 		if f.UseCache {
-			// TODO: implement cache
+			f.insertChatIntoCache(c)
 		}
 
 		list = append(list, c)
