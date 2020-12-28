@@ -70,6 +70,7 @@ func NewFirestoreCommand() *cobra.Command {
 	cmd.Flags().StringVarP(&opts.serviceAccountPath, "service-account-path", "s", "", "the path to the service account")
 	cmd.Flags().StringVarP(&opts.projectName, "project-name", "n", "", "the name of the firebase project")
 	cmd.Flags().StringVarP(&opts.chatsCollection, "chats-collection", "c", "", "the name of the collections where chats are stored")
+	cmd.Flags().BoolVar(&opts.listen, "listen", true, "whether to listening to chat updates or not")
 
 	// -- Mark as required
 	cmd.MarkFlagRequired("service-account-path")
@@ -88,6 +89,7 @@ func runFirestore(opts *firestoreOptions) {
 	ctx, canc := context.WithCancel(context.Background())
 	defer canc()
 	stopChan := make(chan struct{})
+	exitChan := make(chan struct{})
 	endpoint := fmt.Sprintf("%s:%d", opts.address, opts.port)
 
 	// -- Get the backend
@@ -100,6 +102,12 @@ func runFirestore(opts *firestoreOptions) {
 		l.Fatal().Err(err).Msg("error while getting firestore as backend")
 	}
 	defer fs.Close()
+
+	if opts.listen {
+		go fs.ListenForChats(ctx, stopChan)
+	} else {
+		close(stopChan)
+	}
 
 	// -- Start the grpc server
 	serv, err := server.New(fs)
@@ -117,7 +125,7 @@ func runFirestore(opts *firestoreOptions) {
 	pb.RegisterBackendServer(grpcServer, serv)
 	go func() {
 		grpcServer.Serve(lis)
-		close(stopChan)
+		close(exitChan)
 	}()
 
 	// -- Graceful shutdown
@@ -134,6 +142,6 @@ func runFirestore(opts *firestoreOptions) {
 	l.Info().Msg("exit requested")
 	grpcServer.GracefulStop()
 	<-stopChan
-
+	<-exitChan
 	l.Info().Msg("goodbye!")
 }
