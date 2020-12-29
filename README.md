@@ -1,7 +1,7 @@
 # Kube Scraper Backend
 
-This is a small project, part of the
-[Kube Scraper](https://github.com/SunSince90/kube-scraper) project that
+This is a small project and is part of
+[Kube Scraper](https://github.com/SunSince90/kube-scraper), It
 connects to a backend and stores useful information, such as *chats*
 information through *gRPC*.
 
@@ -55,7 +55,7 @@ make build
 ```bash
 ./backend firestore \
 --chats-collection chats
---project-name my-project-name
+--project-id my-project-name
 --service-account-path ./credentials/service-account.json
 --address 10.23.55.77
 --port 8787
@@ -65,7 +65,7 @@ Some description about the command above:
 
 * `--chats-collection` is the name of the firestore collection that contains
 all chats documents
-* `--project-name` is the name of the firebase project
+* `--project-id` is the id of the firebase project
 * `--service-account-path` is the path of the *JSON* service account
 * `--address` specifies the address where we will serve requests
 * `--port` specifies the port where we will serve requests
