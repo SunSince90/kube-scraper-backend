@@ -4,7 +4,7 @@ on:
     types: [published]
 
 env:
-  IMAGE_NAME: kube-scraper-backend
+  IMAGE_NAME: asimpleidea/kube-scraper-backend
 
 jobs:
   pushToDockerHub:
@@ -28,7 +28,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:${{ github.event.release.tag_name }}
+          tags: $IMAGE_NAME:${{ github.event.release.tag_name }}
       
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
