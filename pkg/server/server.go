@@ -67,8 +67,8 @@ func (b *backendServer) GetChat(ctx context.Context, r *pb.ChatRequest) (*pb.Cha
 	}, nil
 }
 
-// GetAllChats returns a list of chats according to the request
-func (b *backendServer) GetAllChats(ctx context.Context, r *pb.ChatRequest) (*pb.ChatResponse, error) {
+// GetChatsList returns a list of chats according to the request
+func (b *backendServer) GetChatsList(ctx context.Context, r *pb.ChatRequest) (*pb.ChatResponse, error) {
 	chats, err := b.backend.GetAllChats()
 	if err != nil {
 		return &pb.ChatResponse{
